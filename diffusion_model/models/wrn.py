@@ -59,10 +59,7 @@ class Wide_ResNet(nn.Module):
         print('| Wide-Resnet %dx%d' % (depth, k))
         if k < 1e-8:
             k = 2
-            nStages = [16, int(16 * k), int(32 * k), 2]
-            latent_dim = 2
-        else:
-            nStages = [16, int(16 * k), int(32 * k), int(64 * k)]
+        nStages = [16, int(16 * k), int(32 * k), latent_dim]
 
         self.prob_enc = prob_enc
 

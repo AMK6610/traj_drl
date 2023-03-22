@@ -90,9 +90,7 @@ class NCSNpp(nn.Module):
         prob_enc = getattr(self.config.training, 'probabilistic_encoder', False)
         if include_encoder:
             widen_factor = config.model.widen_factor
-            latent_dim = int(64 * widen_factor)
-            if latent_dim < 1e-8:
-                latent_dim = 2
+            latent_dim = config.data.latent_dim
             self.encoder = wrn.build_wideresnet(28, widen_factor, 0, 10, latent_dim, prob_enc)
             self.latent_to_temb = nn.Linear(latent_dim, embed_out_dim_tembonly)
             embed_out_dim *= 2
