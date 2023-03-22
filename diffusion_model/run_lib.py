@@ -38,9 +38,9 @@ from .utils import save_checkpoint, restore_checkpoint
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-from config import datasets as datasets_new
-from config import cli
-from config.augmentations import RandAugment
+from .config import datasets as datasets_new
+from .config import cli
+from .config.augmentations import RandAugment
 from torchvision.transforms import transforms
 # import helpers
 import torch.nn as nn
