@@ -1,7 +1,7 @@
-from models import utils as mutils
+from .models import utils as mutils
 import torch
 import numpy as np
-from sampling import NoneCorrector, NonePredictor, shared_corrector_update_fn, shared_predictor_update_fn
+from .sampling import NoneCorrector, NonePredictor, shared_corrector_update_fn, shared_predictor_update_fn
 import functools
 
 
