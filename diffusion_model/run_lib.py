@@ -26,26 +26,21 @@ import tensorflow as tf
 import tensorflow_gan as tfgan
 import logging
 # Keep the import below for registering all model definitions
-from models import ddpm, ncsnv2, ncsnpp
-import losses
-import sampling
-from models import utils as mutils
-from models.ema import ExponentialMovingAverage
-import datasets
-import evaluation
-import likelihood
-import sde_lib
+from .models import ddpm, ncsnv2, ncsnpp
+from .models import utils as mutils
+from .models.ema import ExponentialMovingAverage
+from . import sde_lib, losses, datasets, evaluation, likelihood, sampling
 from absl import flags
 import torch
 # from torch.utils import tensorboard
 from torchvision.utils import make_grid, save_image
-from utils import save_checkpoint, restore_checkpoint
+from .utils import save_checkpoint, restore_checkpoint
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-from config import datasets as datasets_new
-from config import cli
-from config.augmentations import RandAugment
+from .config import datasets as datasets_new
+from .config import cli
+from .config.augmentations import RandAugment
 from torchvision.transforms import transforms
 # import helpers
 import torch.nn as nn
@@ -328,13 +323,16 @@ def get_transforms(dataset, aug):
 def get_dataloaders(dataset, bsz, aug='none'):
     transform = get_transforms(dataset, aug)
     if dataset == 'cifar10':
-        train_data = torchvision.datasets.ImageFolder(
-            root = './data/images/cifar/cifar10/by-image/train+val',
-            transform = transform
+        train_data = torchvision.datasets.CIFAR10(
+            root='../traj_drl/data',
+            transform=transform,
+            download=True
         )
-        test_data = torchvision.datasets.ImageFolder(
-            root = './data/images/cifar/cifar10/by-image/test',
-            transform = transform
+        test_data = torchvision.datasets.CIFAR10(
+            root='../traj_drl/data',
+            transform=transform,
+            train=False,
+            download=True
         )
     elif dataset == 'cifar100':
         train_data = torchvision.datasets.ImageFolder(

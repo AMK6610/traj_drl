@@ -22,10 +22,10 @@ import torch
 import numpy as np
 import abc
 
-from models.utils import from_flattened_numpy, to_flattened_numpy, get_score_fn
+from .models.utils import from_flattened_numpy, to_flattened_numpy, get_score_fn
 from scipy import integrate
-import sde_lib
-from models import utils as mutils
+from . import sde_lib
+from .models import utils as mutils
 
 _CORRECTORS = {}
 _PREDICTORS = {}

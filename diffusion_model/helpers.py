@@ -9,7 +9,7 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from config.utils import *
 import lp.db_semisuper as db_semisuper
 import lp.db_eval as db_eval
-from models import *
+from .models import *
 import itertools
 import torch.backends.cudnn as cudnn
 import torchvision
