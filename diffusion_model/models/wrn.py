@@ -66,7 +66,7 @@ class Wide_ResNet(nn.Module):
         self.time_embedding = timeembedding.TimeEmbedding()
         temb_dim = self.time_embedding.temb_dim
 
-        self.conv1 = conv3x3(3, nStages[0])
+        self.conv1 = conv3x3(1, nStages[0])
         self.layer1 = self._wide_layer(wide_basic, nStages[1], n, dropout_rate, stride=1, temb_dim=temb_dim)
         self.layer2 = self._wide_layer(wide_basic, nStages[2], n, dropout_rate, stride=2, temb_dim=temb_dim)
         self.layer3 = self._wide_layer(wide_basic, nStages[3], n, dropout_rate, stride=2, temb_dim=temb_dim)
