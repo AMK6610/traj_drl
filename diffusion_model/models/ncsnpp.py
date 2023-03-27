@@ -91,7 +91,10 @@ class NCSNpp(nn.Module):
         if include_encoder:
             widen_factor = config.model.widen_factor
             latent_dim = config.data.latent_dim
-            self.encoder = wrn.build_wideresnet(28, widen_factor, 0, 10, latent_dim, prob_enc)
+            # self.encoder = wrn.build_wideresnet(28, widen_factor, 0, 10, latent_dim, prob_enc)
+            self.encoder = wrn.build_encoder(28, widen_factor, 0, 10, latent_dim, prob_enc, latent_dim, 
+                                             config.encoder.n_hidden_layers, config.encoder.hidden_units, config.encoder.fix_std, 
+                                             config.encoder.init_std, config.encoder.min_std, type=config.encoder.type)
             self.latent_to_temb = nn.Linear(latent_dim, embed_out_dim_tembonly)
             embed_out_dim *= 2
             self.low_res_image_size = int(self.config.data.image_size // (2 ** (self.num_resolutions - 1)))
@@ -331,6 +334,7 @@ class NCSNpp(nn.Module):
                         h = modules[m_idx](hs[-1])
                         m_idx += 1
                     else:
+                        # print(hs[-1].shape, temb.shape)
                         h = modules[m_idx](hs[-1], temb)
                         m_idx += 1
 

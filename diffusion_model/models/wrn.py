@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from . import timeembedding, layers, layerspp
 import sys
 
+from .encoder import GaussianEncoder
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,3 +118,11 @@ def build_wideresnet(depth, widen_factor, dropout, num_classes, latent_dim, prob
                        num_classes=num_classes,
                        latent_dim=latent_dim,
                        prob_enc=prob_enc)
+
+def build_encoder(depth, widen_factor, dropout, num_classes, latent_dim, prob_enc, dim_input, n_hidden_layers, hidden_units, fix_std, init_std, min_std, type='wrn'):
+    if type == 'wrn':
+        return build_wideresnet(depth, widen_factor, dropout, num_classes, latent_dim, prob_enc)
+    else:
+        hidden_layers = n_hidden_layers
+        hidden = [hidden_units for _ in range(hidden_layers)]
+        return GaussianEncoder(hidden, dim_input, latent_dim, fix_std, init_std, min_std)
