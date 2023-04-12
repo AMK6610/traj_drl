@@ -43,6 +43,8 @@ class NCSNpp(nn.Module):
         self.act = act = get_act(config)
         self.register_buffer('sigmas', torch.tensor(utils.get_sigmas(config)))
 
+        self.init_layer = nn.Linear(config.data.latent_dim, 256)
+
         self.nf = nf = config.model.nf
         ch_mult = config.model.ch_mult
         self.num_res_blocks = num_res_blocks = config.model.num_res_blocks
@@ -258,6 +260,12 @@ class NCSNpp(nn.Module):
         use_constrained_architecture = getattr(self.config.model, 'constrained_architecture', False)
 
         with torch.enable_grad():
+            # print(f'shape of x before: {x.shape}')
+            # if self.config.data.dataset == 'toy':
+            #     x = self.init_layer(x)
+            # print(f'shape of x after: {x.shape}')
+            if len(x.shape) == 2:
+                x = x.view(x.shape[0], 1, int(np.sqrt(x.shape[-1])), int(np.sqrt(x.shape[-1])))
             xshape = x.shape
             if use_constrained_architecture:
                 if x.grad is not None:
@@ -304,10 +312,15 @@ class NCSNpp(nn.Module):
             prob_enc = getattr(self.config.training, 'probabilistic_encoder', False)
             z_mean, z_logvar = None, None
             if include_encoder:
-                _, _, z = self.encoder(x=x0, t=t)
-                if prob_enc:
-                    z_mean, z_logvar = torch.split(z, z.shape[-1] // 2, dim=-1)
-                    z = z_mean + torch.randn_like(z_logvar) * (0.5 * z_logvar).exp()
+                if self.config.encoder.type == 'wrn':
+                    _, _, z = self.encoder(x=x0, t=t)
+                    if prob_enc:
+                        z_mean, z_logvar = torch.split(z, z.shape[-1] // 2, dim=-1)
+                        z = z_mean + torch.randn_like(z_logvar) * (0.5 * z_logvar).exp()
+                else:
+                    z, _ = self.encoder(x0)
+                    z_mean, z_var = self.encoder.mean_std(x0)
+                    z_logvar = torch.log(z_var)
                 temb = torch.cat((temb, self.latent_to_temb(z)), dim=-1)
 
             # Downsampling block

@@ -5,11 +5,14 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from itertools import chain
+from .utils import inverse_softplus, make_mlp
 
-from .utils import make_mlp, inverse_softplus
+from .encoder_base import Encoder
 
 
-class GaussianEncoder(nn.Module):
+
+
+class GaussianEncoder(Encoder):
     """
     Scalar Gaussian encoder / decoder for a VAE.
 
@@ -30,11 +33,10 @@ class GaussianEncoder(nn.Module):
         init_std=1.0,
         min_std=1.0e-3,
     ):
-        super().__init__()
+        super().__init__(input_features, output_features)
+
         assert not fix_std or init_std is not None
 
-        self.input_features = input_features
-        self.output_features = output_features
         self._min_std = min_std if not fix_std else 0.0
         self.net, self.mean_head, self.std_head = self._create_nets(
             hidden, fix_std=fix_std, init_std=init_std
@@ -42,8 +44,7 @@ class GaussianEncoder(nn.Module):
 
     def forward(
         self,
-        x,
-        t=None,
+        inputs,
         eval_likelihood_at=None,
         deterministic=False,
         return_mean=False,
@@ -73,12 +74,13 @@ class GaussianEncoder(nn.Module):
         encoder_std : torh.Tensor, optional
             If `return_std` is True, returns the encoder std
         """
-        if len(x.shape) > 2:
-            x = x.view(-1, x.shape[-1] ** 2)
+
+        if len(inputs.shape) > 2:
+            inputs = inputs.view(-1, inputs.shape[-1] ** 2)
 
         # Compute mean and log std for latent variables
-        mean, std = self.mean_std(x)
-        z, log_likelihood = gaussian_encode(
+        mean, std = self.mean_std(inputs)
+        return gaussian_encode(
             mean,
             std,
             eval_likelihood_at,
@@ -88,7 +90,6 @@ class GaussianEncoder(nn.Module):
             full=full,
             reduction=reduction,
         )
-        return z, log_likelihood, torch.cat((mean, std), dim=1)
 
     def _create_nets(self, hidden, fix_std=False, init_std=None):
         dims = [self.input_features] + hidden
@@ -125,9 +126,11 @@ class GaussianEncoder(nn.Module):
 
     def mean_std(self, x):
         """Given data, compute mean and std"""
+        if len(x.shape) > 2:
+            x = x.view(-1, x.shape[-1] ** 2)
         hidden = self.net(x)
         mean = self.mean_head(hidden)
-        std = torch.log(self.std_head(hidden) + self._min_std)
+        std = self._min_std + self.std_head(hidden)
         return mean, std
 
     def freezable_parameters(self):
@@ -220,3 +223,58 @@ def gaussian_log_likelihood(x, mean, std, full=True, reduction="sum"):
         raise ValueError(f"Unknown likelihood reduction {reduction}")
 
     return log_likelihood
+
+
+class DeterministicVAEEncoderWrapper(GaussianEncoder):
+    """
+    Wrapper class that lets you use a deterministic encoder / decoder to predict the mean in a
+    Gaussian encoder / decoder
+    """
+
+    def __init__(self, base_model, hidden=None, fix_std=True, init_std=1.0, min_std=1.0e-3):
+        super().__init__(
+            hidden=hidden,
+            input_features=base_model.input_features,
+            output_features=base_model.output_features,
+            fix_std=fix_std,
+            min_std=min_std,
+            init_std=init_std,
+        )
+        self.base_model = base_model
+
+    def _create_nets(self, hidden, fix_std=False, init_std=None):
+        # Main net
+        if hidden is None:
+            dims = [self.input_features + self.output_features]
+        else:
+            dims = [self.input_features + self.output_features] + hidden
+        main_net = make_mlp(dims, final_activation="relu")
+
+        # Standard deviation head
+        if fix_std:
+            std_head = nn.Linear(dims[-1], self.output_features)
+            nn.init.constant_(std_head.weight, 0.0)
+            if init_std is not None:
+                assert init_std > 0.0
+                init_value = inverse_softplus(init_std)
+                nn.init.constant_(std_head.bias, init_value)
+            for param in std_head.parameters():
+                param.requires_grad = False
+        else:
+            linear_layer = nn.Linear(dims[-1], self.output_features)
+            nn.init.normal_(linear_layer.weight, 0.0, 1.0e-3)
+            if init_std is not None:
+                assert init_std > 0.0
+                init_value = inverse_softplus(init_std - self._min_std)
+                nn.init.constant_(linear_layer.bias, init_value)
+            std_head = nn.Sequential(linear_layer, nn.Softplus())
+
+        std_net = nn.Sequential(main_net, std_head)
+        return std_net, None, None
+
+    def mean_std(self, x):
+        """Given data, compute mean and std"""
+        mean, _ = self.base_model(x)
+        x_mean = torch.cat((mean, x), dim=1)
+        std = self._min_std + self.net(x_mean)
+        return mean, std
