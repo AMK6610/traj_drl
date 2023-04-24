@@ -71,7 +71,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
     """
     reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
 
-    def loss_fn(model, batch):
+    def loss_fn(model, batch, batch_conditional=None):
         """Compute the loss function.
 
         Args:
@@ -87,7 +87,10 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
         mean, std = sde.marginal_prob(batch, t)
         perturbed_data = mean + std[:, None, None, None] * z
 
-        x0_input = batch
+        if batch_conditional is None:
+            batch_conditional = batch
+
+        x0_input = batch_conditional
         loss_weight = 1.0
         apply_mixup = getattr(config.training, 'apply_mixup', False)
         if apply_mixup:
