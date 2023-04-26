@@ -43,7 +43,7 @@ class NCSNpp(nn.Module):
         self.act = act = get_act(config)
         self.register_buffer('sigmas', torch.tensor(utils.get_sigmas(config)))
 
-        self.init_layer = nn.Linear(config.data.latent_dim, 256)
+        self.init_layer = nn.Linear(config.data.latent_dim, 64)
 
         self.nf = nf = config.model.nf
         ch_mult = config.model.ch_mult
@@ -92,7 +92,8 @@ class NCSNpp(nn.Module):
         prob_enc = getattr(self.config.training, 'probabilistic_encoder', False)
         if include_encoder:
             widen_factor = config.model.widen_factor
-            latent_dim = config.data.latent_dim
+            # latent_dim = config.data.latent_dim
+            latent_dim = 64
             # self.encoder = wrn.build_wideresnet(28, widen_factor, 0, 10, latent_dim, prob_enc)
             self.encoder = wrn.build_encoder(28, widen_factor, 0, 10, latent_dim, prob_enc, latent_dim, 
                                              config.encoder.n_hidden_layers, config.encoder.hidden_units, config.encoder.fix_std, 
