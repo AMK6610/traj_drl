@@ -107,7 +107,7 @@ def get_model_fn(model, train=False):
       A model function.
     """
 
-    def model_fn(x, labels, x0=None, t=None):
+    def model_fn(x, labels, x0=None, t=None, e=None):
         """Compute the output of the score-based model.
 
         Args:
@@ -120,10 +120,10 @@ def get_model_fn(model, train=False):
         """
         if not train:
             model.eval()
-            return model(x, labels, x0=x0, t=t)
+            return model(x, labels, x0=x0, t=t, e=e)
         else:
             model.train()
-            return model(x, labels, x0=x0, t=t)
+            return model(x, labels, x0=x0, t=t, e=e)
 
     return model_fn
 
@@ -162,7 +162,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
             return score
 
     elif isinstance(sde, sde_lib.VESDE):
-        def score_fn(x, t, x0=None):
+        def score_fn(x, t, x0=None, e=None):
             if continuous:
                 labels = sde.marginal_prob(torch.zeros_like(x), t)[1]
             else:
@@ -171,7 +171,7 @@ def get_score_fn(sde, model, train=False, continuous=False):
                 labels *= sde.N - 1
                 labels = torch.round(labels).long()
 
-            score = model_fn(x, labels, x0=x0, t=t)
+            score = model_fn(x, labels, x0=x0, t=t, e=e)
             return {k: v.detach() if not train and hasattr(v, 'detach') else v for k, v in score.items()}
             if not train:
                 for v in score.values():

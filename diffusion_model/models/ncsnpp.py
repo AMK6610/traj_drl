@@ -92,8 +92,8 @@ class NCSNpp(nn.Module):
         prob_enc = getattr(self.config.training, 'probabilistic_encoder', False)
         if include_encoder:
             widen_factor = config.model.widen_factor
-            # latent_dim = config.data.latent_dim
-            latent_dim = 64
+            latent_dim = config.data.latent_dim
+            # latent_dim = 64
             # self.encoder = wrn.build_wideresnet(28, widen_factor, 0, 10, latent_dim, prob_enc)
             self.encoder = wrn.build_encoder(28, widen_factor, 0, 10, latent_dim, prob_enc, latent_dim, 
                                              config.encoder.n_hidden_layers, config.encoder.hidden_units, config.encoder.fix_std, 
@@ -257,7 +257,7 @@ class NCSNpp(nn.Module):
 
         self.all_modules = nn.ModuleList(modules)
 
-    def forward(self, x, time_cond, x0=None, t=None):
+    def forward(self, x, time_cond, x0=None, t=None, e=None):
         use_constrained_architecture = getattr(self.config.model, 'constrained_architecture', False)
 
         with torch.enable_grad():
@@ -319,9 +319,12 @@ class NCSNpp(nn.Module):
                         z_mean, z_logvar = torch.split(z, z.shape[-1] // 2, dim=-1)
                         z = z_mean + torch.randn_like(z_logvar) * (0.5 * z_logvar).exp()
                 else:
-                    z, _ = self.encoder(x0)
-                    z_mean, z_var = self.encoder.mean_std(x0)
-                    z_logvar = torch.log(z_var)
+                    if e is not None:
+                        z = e
+                    else:
+                        z, _ = self.encoder(x0)
+                        z_mean, z_var = self.encoder.mean_std(x0)
+                        z_logvar = torch.log(z_var)
                 temb = torch.cat((temb, self.latent_to_temb(z)), dim=-1)
 
             # Downsampling block

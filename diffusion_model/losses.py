@@ -71,7 +71,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
     """
     reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
 
-    def loss_fn(model, batch, batch_conditional=None):
+    def loss_fn(model, batch, batch_conditional=None, e=None):
         """Compute the loss function.
 
         Args:
@@ -106,7 +106,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
             x0_input = lam[:, None, None, None] * batch + (1. - lam[:, None, None, None]) * batch[index, :]
             loss_weight = 2 * lam
 
-        model_result = score_fn(perturbed_data, t, x0=x0_input)
+        model_result = score_fn(perturbed_data, t, x0=x0_input, e=e)
         score = model_result['output']
 
         if not likelihood_weighting:
@@ -147,8 +147,8 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
                 losses += config.training.lambda_reconstr * losses_reconstr
 
         losses += losses_reg
-        loss = torch.mean(losses)
-        return loss
+        # loss = torch.mean(losses)
+        return losses
 
     return loss_fn
 
