@@ -95,7 +95,7 @@ class NCSNpp(nn.Module):
             latent_dim = config.data.latent_dim
             # latent_dim = 64
             # self.encoder = wrn.build_wideresnet(28, widen_factor, 0, 10, latent_dim, prob_enc)
-            self.encoder = wrn.build_encoder(28, widen_factor, 0, 10, latent_dim, prob_enc, latent_dim, 
+            self.encoder = wrn.build_encoder(28, widen_factor, 0, 10, latent_dim, prob_enc, config.data.dim_x,
                                              config.encoder.n_hidden_layers, config.encoder.hidden_units, config.encoder.fix_std, 
                                              config.encoder.init_std, config.encoder.min_std, type=config.encoder.type)
             self.latent_to_temb = nn.Linear(latent_dim, embed_out_dim_tembonly)
